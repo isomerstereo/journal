@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  /* CRT GLASS GLOW EFFECT */
+  .theme-phosphor-amber {
+    --terminal-glow: rgba(245, 158, 11, 0.15);
+    --terminal-border: rgba(245, 158, 11, 0.3);
+    text-shadow: 0 0 4px var(--terminal-glow);
+  }
+
+  .theme-phosphor-green {
+    --terminal-glow: rgba(16, 185, 129, 0.15);
+    --terminal-border: rgba(16, 185, 129, 0.3);
+    text-shadow: 0 0 4px var(--terminal-glow);
+  }
+
+  /* REFRESH SCANLINES OVERLAY */
+  .bg-scanlines {
+    position: relative;
+  }
+  
+  .bg-scanlines::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 999;
+    background-size: 100% 3px, 6px 100%;
+    pointer-events: none;
+  }
+
+  /* CRT SCREEN CURVATURE BLUR */
+  .crt-vignette {
+    box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.8);
+  }
+
+  /* VINTAGE HARDWARE TEXT RENDER */
+  .pixelated-text {
+    font-smooth: never;
+    -webkit-font-smoothing: none;
+    letter-spacing: -0.025em;
+  }
+}
+
+/* SUBTLE MONITOR FLICKER ANIMATION */
+@keyframes crt-flicker {
+  0% { opacity: 0.985; }
+  50% { opacity: 1; }
+  100% { opacity: 0.99; }
+}
+
+.animate-flicker {
+  animation: crt-flicker 0.2s infinite;
+}
