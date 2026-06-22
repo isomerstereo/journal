@@ -49,6 +49,23 @@ export const Workspace = () => {
     setActiveNotebookId = () => {}
   } = workspaceHooks;
 
+  // --- ROUTER VIEW CONTROLLER ---
+  
+  // View 1: If router is set to 'SHELF', show the library skeuomorphic shelf layout
+  if (activeView === 'SHELF') {
+    return (
+      <div className="min-h-screen bg-slate-950 p-6">
+        <BookLedger 
+          workspaceHooks={workspaceHooks} 
+          onSelectDay={(day) => {
+            // Optional: Auto-swap directly to the dashboard core focus mode on selection
+            setActiveView('JOURNAL_CORE');
+          }}
+        />
+      </div>
+    );
+  }
+
   // --- DATA TRANSFORMATION & FILTERING ---
   const activeEvents = selectedDate 
     ? timelineEvents.filter(e => e.day === selectedDate) 
@@ -102,10 +119,9 @@ export const Workspace = () => {
     setIsModalOpen(true);
   };
 
-  // --- RENDER ---
+ // --- RENDER ---
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 font-mono selection:bg-slate-800">
-      
+    <div className="min-h-screen bg-black text-slate-100 font-mono text-xs p-6 space-y-6">
       {/* Header Section */}
       <header className="flex justify-between items-center mb-6 pb-4 border-b border-slate-800">
         <div>
@@ -169,8 +185,8 @@ export const Workspace = () => {
       </header>
 
       {/* --- DYNAMIC CONDITIONAL ROUTING LAYER --- */}
-      {!activeNotebook ? (
-        /* CONDITION A: NO BOOK SELECTED -> Show Only the Ledge Shelf Home UI Layout */
+      {activeView === 'SHELF' || !activeNotebook ? (
+        /* CONDITION A: NO BOOK SELECTED OR ROUTER SET TO SHELF -> Show Only the Ledge Shelf Home UI Layout */
         <div className="space-y-4">
           <Widget title="Master Library Shell Index // Home View">
             <BookLedger 
@@ -186,7 +202,11 @@ export const Workspace = () => {
           {/* Global Return Anchor to get back to shelf easily */}
           <div className="flex justify-end">
             <button 
-              onClick={() => { setActiveNotebookId(null); setSelectedDate(null); }}
+              onClick={() => { 
+                setActiveNotebookId(null); 
+                setSelectedDate(null); 
+                setActiveView('SHELF'); // Safely remounts the bookshelf component view
+              }}
               className="text-[11px] font-bold text-indigo-400 bg-slate-900 border border-slate-800 px-3 py-1 rounded hover:border-slate-700 hover:text-slate-200 transition-all"
             >
               [◂ Close Volume & Return to Library Ledge]
