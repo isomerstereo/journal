@@ -23,9 +23,12 @@ export const Workspace = () => {
   const {
     calendarData,
     habitData,
+    toggleHabit,  // Extracted function
+    updateSleep,  // Extracted function
     timeWheelData,
     setTimeWheelData,
     timelineEvents,
+    setTimelineEvents, // Ensure this is explicitly extracted for the modal line to work
     checklistTasks,
     setChecklistTasks,
   } = useWorkspaceData();
@@ -134,8 +137,12 @@ export const Workspace = () => {
           </Widget>
 
           <Widget title={`Habit Matrix ${selectedDate ? `[Day ${selectedDate}]` : ''}`}>
-            <HabitMatrix daysData={habitData} activeDay={selectedDate} />
-          </Widget>
+    <HabitMatrix 
+      daysData={habitData} 
+      onToggleHabit={toggleHabit} 
+      onUpdateSleep={updateSleep} 
+    />
+  </Widget>
         </div>
 
         {/* Right Column: Feeds & Engines */}
@@ -191,7 +198,7 @@ export const Workspace = () => {
             // This assumes setTimelineEvents exists in your useWorkspaceData hook
             // If your hook returns timelineEvents as a standard array, 
             // ensure you have the 'setTimelineEvents' setter available.
-            setTimelineEvents(prev => [...prev, newEvent]);
+            setTimelineEvents([...timelineEvents, newEvent]);
             
             setIsModalOpen(false);
           }}

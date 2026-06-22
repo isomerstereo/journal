@@ -3,7 +3,24 @@ import { useState, useEffect } from 'react';
 export const useWorkspaceData = () => {
   // 1. Core State Hooks
   const [calendarData, setCalendarData] = useState({});
-  const [habitData, setHabitData] = useState([]);
+  
+  // Initialize matrix state with a clean 15-day baseline if localStorage is empty
+  const [habitData, setHabitData] = useState(() => {
+    const saved = localStorage.getItem('desk_habits');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse initial habit data:", e);
+      }
+    }
+    return Array.from({ length: 15 }, (_, index) => ({
+      day: index + 1,
+      habitsStatus: {},
+      sleepHours: 7
+    }));
+  });
+
   const [timeWheelData, setTimeWheelData] = useState({});
   const [timelineEvents, setTimelineEvents] = useState([]);
   const [checklistTasks, setChecklistTasks] = useState([]);
@@ -54,26 +71,60 @@ export const useWorkspaceData = () => {
     saveToStorage('desk_tasks', newTasks);
   };
 
+  // Matrix State Modifiers
+  const toggleHabit = (dayNum, habitName) => {
+    const updatedHabits = habitData.map(dayObj => {
+      if (dayObj.day !== dayNum) return dayObj;
+      
+      const currentStatus = dayObj.habitsStatus?.[habitName] || '•';
+      const nextStatus = currentStatus === 'X' ? '•' : 'X';
+      
+      return {
+        ...dayObj,
+        habitsStatus: {
+          ...(dayObj.habitsStatus || {}),
+          [habitName]: nextStatus
+        }
+      };
+    });
+    
+    setHabitData(updatedHabits);
+    saveToStorage('desk_habits', updatedHabits);
+  };
+
+  const updateSleep = (dayNum, nextHours) => {
+    const updatedHabits = habitData.map(dayObj => 
+      dayObj.day === dayNum 
+        ? { ...dayObj, sleepHours: nextHours } 
+        : dayObj
+    );
+
+    setHabitData(updatedHabits);
+    saveToStorage('desk_habits', updatedHabits);
+  };
+
   // 5. Exposed API
   return {
     // Calendar
     calendarData,
     setCalendarData,
     
-    // Habits
+    // Habits Matrix
     habitData,
     setHabitData,
+    toggleHabit,
+    updateSleep,
     
     // TimeWheel
     timeWheelData,
-    setTimeWheelData: updateTimeWheel, // Use the sync-enabled setter
+    setTimeWheelData: updateTimeWheel,
     
     // Timeline
     timelineEvents,
-    setTimelineEvents: updateTimeline, // Use the sync-enabled setter
+    setTimelineEvents: updateTimeline,
     
     // Checklist
     checklistTasks,
-    setChecklistTasks: updateChecklist, // Use the sync-enabled setter
+    setChecklistTasks: updateChecklist,
   };
 };
