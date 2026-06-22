@@ -29,9 +29,9 @@ export const useWorkspaceData = () => {
   // Tracks the active top-level library view (e.g., 'all', 'journal', 'review', 'thoughts', 'projects')
   const [activeSection, setActiveSection] = useState('all');
   
-  // Tracks the currently opened notebook object (null means user is looking at the bookshelf)
-  const [activeView, setActiveView] = React.useState('SHELF'); // Views: 'SHELF', 'JOURNAL_CORE', etc.
-  const [activeNotebookId, setActiveNotebookId] = React.useState(null);
+  // FIXED: Changed React.useState to useState to avoid unhandled reference crashes
+  const [activeView, setActiveView] = useState('SHELF'); // Views: 'SHELF', 'JOURNAL_CORE', etc.
+  const [activeNotebookId, setActiveNotebookId] = useState(null);
 
   // Core Notebooks Registry State
   const [notebooks, setNotebooks] = useState(() => {
@@ -45,7 +45,7 @@ export const useWorkspaceData = () => {
         id: 'nb-journal-default',
         sectionId: 'journal',
         title: 'Daily Journal',
-        coverImage: 'journal-yellow',
+        coverImage: 'bg-amber-800 border-amber-950 text-amber-200', // Synced default style mapping
         type: 'journal', // Special type utilizing your StoryCalendar entries
         rating: 0
       },
@@ -53,7 +53,7 @@ export const useWorkspaceData = () => {
         id: 'nb-pathology-review',
         sectionId: 'review',
         title: 'Robbins Pathology Review',
-        coverImage: 'medical-blue',
+        coverImage: 'bg-emerald-800 border-emerald-950 text-emerald-200', 
         type: 'review', // Displays review metrics & star ratings
         rating: 5,
         status: 'In Progress'
@@ -135,6 +135,7 @@ export const useWorkspaceData = () => {
     setChecklistTasks(newTasks);
     saveToStorage('desk_tasks', newTasks);
   };
+  
   // --- LIBRARY ARCHITECTURE MUTATORS ---
   const createNotebook = (title, sectionId, type, coverImage = 'default-gray') => {
     const newNotebook = {
@@ -185,7 +186,6 @@ export const useWorkspaceData = () => {
     return true;
   };
 
-  // --- VAULT STORAGE JOURNAL UPDATER ---
   // --- SCOPED LIBRARY ENTRY UPDATER ---
   const saveVaultEntry = (dayNum, entryPayload) => {
     const { title, body, tags = [] } = entryPayload;
@@ -304,8 +304,13 @@ export const useWorkspaceData = () => {
     // Library & Bookshelf Engine
     activeSection,
     setActiveSection,
+    
+    // FIXED: Appended core layout routing states back into exposed wrapper output
+    activeView,
+    setActiveView,
     activeNotebookId,
     setActiveNotebookId,
+    
     notebooks,
     createNotebook,
     updateNotebookRating,

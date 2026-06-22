@@ -19,6 +19,7 @@ export const Workspace = () => {
   const [companionState, setCompanionState] = useState('IDLE');
   const [selectedDate, setSelectedDate] = useState(null);
   const [isPromptMinimized, setIsPromptMinimized] = useState(false);
+  
 
   // Initialize unified hook framework layer
   const workspaceHooks = useWorkspaceData();
@@ -41,10 +42,11 @@ export const Workspace = () => {
     saveVaultEntry,
     changeVaultPasscode,
     
-    // Track whether a book is actively opened or if we are sitting on the shelf home UI
-    activeNotebookId,
-    setActiveNotebookId,
-    activeNotebook
+    // Add fallback defaults here to guarantee safety:
+    activeView = 'SHELF', 
+    setActiveView = () => {},
+    activeNotebookId = null,
+    setActiveNotebookId = () => {}
   } = workspaceHooks;
 
   // --- DATA TRANSFORMATION & FILTERING ---
