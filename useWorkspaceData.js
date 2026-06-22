@@ -24,9 +24,6 @@ export const useWorkspaceData = () => {
   const [timeWheelData, setTimeWheelData] = useState({});
   const [timelineEvents, setTimelineEvents] = useState([]);
   const [checklistTasks, setChecklistTasks] = useState([]);
-// --- to track which subsystem view is open ---
-  const [activeView, setActiveView] = React.useState('SHELF'); // Views: 'SHELF', 'JOURNAL_CORE', etc.
-  const [activeNotebookId, setActiveNotebookId] = React.useState(null);
 
   // --- LIBRARY & SHELF MANAGEMENT STATE ---
   // Tracks the active top-level library view (e.g., 'all', 'journal', 'review', 'thoughts', 'projects')
