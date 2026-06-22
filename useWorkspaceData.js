@@ -25,6 +25,41 @@ export const useWorkspaceData = () => {
   const [timelineEvents, setTimelineEvents] = useState([]);
   const [checklistTasks, setChecklistTasks] = useState([]);
 
+  // --- LIBRARY & SHELF MANAGEMENT STATE ---
+  // Tracks the active top-level library view (e.g., 'all', 'journal', 'review', 'thoughts', 'projects')
+  const [activeSection, setActiveSection] = useState('all');
+  
+  // Tracks the currently opened notebook object (null means user is looking at the bookshelf)
+  const [activeNotebookId, setActiveNotebookId] = useState(null);
+
+  // Core Notebooks Registry State
+  const [notebooks, setNotebooks] = useState(() => {
+    const saved = localStorage.getItem('desk_library_notebooks');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { console.error("Library parse failed:", e); }
+    }
+    // Baseline Volumes matching your system architecture
+    return [
+      {
+        id: 'nb-journal-default',
+        sectionId: 'journal',
+        title: 'Daily Journal',
+        coverImage: 'journal-yellow',
+        type: 'journal', // Special type utilizing your StoryCalendar entries
+        rating: 0
+      },
+      {
+        id: 'nb-pathology-review',
+        sectionId: 'review',
+        title: 'Robbins Pathology Review',
+        coverImage: 'medical-blue',
+        type: 'review', // Displays review metrics & star ratings
+        rating: 5,
+        status: 'In Progress'
+      }
+    ];
+  });
+
   // --- VAULT CORE & SECURITY STORAGE ---
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
   const [vaultEntries, setVaultEntries] = useState(() => {
@@ -52,6 +87,7 @@ export const useWorkspaceData = () => {
   // 2. Load all data from localStorage on mount
   useEffect(() => {
     const storageKeys = {
+      library_notebooks: 'desk_library_notebooks',
       calendar: 'desk_calendar',
       habits: 'desk_habits',
       timewheel: 'desk_timewheel',
@@ -67,7 +103,8 @@ export const useWorkspaceData = () => {
       const time = localStorage.getItem(storageKeys.timeline);
       const task = localStorage.getItem(storageKeys.tasks);
       const vlt = localStorage.getItem(storageKeys.vault);
-
+      const libBooks = localStorage.getItem('desk_library_notebooks');
+      if (libBooks) setNotebooks(JSON.parse(libBooks));
       if (cal) setCalendarData(JSON.parse(cal));
       if (hab) setHabitData(JSON.parse(hab));
       if (wheel) setTimeWheelData(JSON.parse(wheel));
@@ -97,6 +134,39 @@ export const useWorkspaceData = () => {
     setChecklistTasks(newTasks);
     saveToStorage('desk_tasks', newTasks);
   };
+  // --- LIBRARY ARCHITECTURE MUTATORS ---
+  const createNotebook = (title, sectionId, type, coverImage = 'default-gray') => {
+    const newNotebook = {
+      id: `notebook-${Date.now()}`,
+      sectionId, // 'review', 'thoughts', 'projects', etc.
+      title: title || 'Untitled Volume',
+      type,      // 'journal' | 'review' | 'thoughts' | 'planning'
+      coverImage,
+      rating: 0,
+      status: 'Active',
+      createdAt: new Date().toISOString()
+    };
+
+    const updated = [...notebooks, newNotebook];
+    setNotebooks(updated);
+    saveToStorage('desk_library_notebooks', updated);
+    return newNotebook;
+  };
+
+  const updateNotebookRating = (notebookId, nextRating) => {
+    const updated = notebooks.map(book => 
+      book.id === notebookId ? { ...book, rating: nextRating } : book
+    );
+    setNotebooks(updated);
+    saveToStorage('desk_library_notebooks', updated);
+  };
+
+  const deleteNotebook = (notebookId) => {
+    const updated = notebooks.filter(book => book.id !== notebookId);
+    setNotebooks(updated);
+    saveToStorage('desk_library_notebooks', updated);
+    if (activeNotebookId === notebookId) setActiveNotebookId(null);
+  };
 
   // --- SECURE VAULT PASSPHRASE MUTATOR ---
   const changeVaultPasscode = (oldPass, newPass) => {
@@ -115,17 +185,24 @@ export const useWorkspaceData = () => {
   };
 
   // --- VAULT STORAGE JOURNAL UPDATER ---
+  // --- SCOPED LIBRARY ENTRY UPDATER ---
   const saveVaultEntry = (dayNum, entryPayload) => {
     const { title, body, tags = [] } = entryPayload;
     
-    // Auto-detect secret tag parameters or bracket syntax
     const isSecret = tags.includes('secret') || body.includes('[[secret]]');
+    const scopeId = activeNotebookId || 'nb-journal-default'; // Fallback to baseline journal
 
     const updatedVault = [...vaultEntries];
-    const existingIndex = updatedVault.findIndex(e => e.day === dayNum && e.isSecret === isSecret);
+    // Scope search by matching BOTH the day/id AND the specific parent notebook ID
+    const existingIndex = updatedVault.findIndex(e => 
+      e.day === dayNum && 
+      e.notebookId === scopeId && 
+      e.isSecret === isSecret
+    );
 
     const targetEntry = {
       id: existingIndex > -1 ? updatedVault[existingIndex].id : `vault-${Date.now()}`,
+      notebookId: scopeId, // Link this specific page entry directly to the active volume
       day: dayNum,
       title: title || `LOG ENTRY — DAY ${dayNum}`,
       body: body || '',
@@ -182,8 +259,12 @@ export const useWorkspaceData = () => {
     saveToStorage('desk_habits', updatedHabits);
   };
 
-  // Dynamic filter masking restricted notes away from unauthorized sessions
-  const visibleEntries = vaultEntries.filter(entry => !entry.isSecret || isVaultUnlocked);
+  // Dynamic filter masking restricted notes away from unauthorized sessions, matching current book scope
+  const currentScopeId = activeNotebookId || 'nb-journal-default';
+  const visibleEntries = vaultEntries.filter(entry => 
+    entry.notebookId === currentScopeId && 
+    (!entry.isSecret || isVaultUnlocked)
+  );
 
   // 5. Exposed API
   return {
@@ -217,6 +298,20 @@ export const useWorkspaceData = () => {
     vaultPasscode,
     saveVaultEntry,
     deleteVaultEntry,
-    changeVaultPasscode
+    changeVaultPasscode,
+
+    // Library & Bookshelf Engine
+    activeSection,
+    setActiveSection,
+    activeNotebookId,
+    setActiveNotebookId,
+    notebooks,
+    createNotebook,
+    updateNotebookRating,
+    deleteNotebook,
+    
+    // Quick Reference Derivative Filter
+    filteredNotebooks: notebooks.filter(b => activeSection === 'all' || b.sectionId === activeSection),
+    activeNotebook: notebooks.find(b => b.id === activeNotebookId) || null,
   };
 };

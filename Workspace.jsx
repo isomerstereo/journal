@@ -5,6 +5,7 @@ import { StoryCalendar } from './StoryCalendar';
 import { ChibiCompanion } from './ChibiCompanion';
 import { EventModal } from './EventModal'; 
 
+import { BookLedger } from './BookLedger';
 import { HabitMatrix } from './habitmatrix';
 import { TimeWheelLog } from './timewheellog';
 import { JournalTimeline } from './journaltimeline';
@@ -19,6 +20,10 @@ export const Workspace = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [isPromptMinimized, setIsPromptMinimized] = useState(false);
 
+  // 1. Capture the full raw hook package object first for BookLedger
+  const workspaceHooks = useWorkspaceData();
+
+  // 2. Destructure individual values cleanly from that same instance bundle
   const {
     calendarData,
     habitData,
@@ -30,15 +35,13 @@ export const Workspace = () => {
     setTimelineEvents, 
     checklistTasks,
     setChecklistTasks,
-    
-    // EXTRACTED SECURE JOURNAL ARCHITECTURE VARIABLES
     visibleEntries,
     isVaultUnlocked,
     setIsVaultUnlocked,
-    vaultPasscode,    //pull passcode
+    vaultPasscode,    
     saveVaultEntry,
-    changeVaultPasscode,  //pull setter
-  } = useWorkspaceData();
+    changeVaultPasscode,  
+  } = workspaceHooks;
 
   // --- DATA TRANSFORMATION & FILTERING ---
   const activeEvents = selectedDate 
@@ -57,7 +60,6 @@ export const Workspace = () => {
 
   // --- EVENT HANDLERS ---
   const handleNoteChange = (day, text) => {
-    // Extract inline bracket hashes for indexing tags later
     const tagMatches = text.match(/#\w+/g) || [];
     const cleanTags = tagMatches.map(t => t.replace('#', ''));
     
@@ -106,41 +108,39 @@ export const Workspace = () => {
           <div className="flex items-center gap-2 mt-0.5">
             <p className="text-[10px] text-slate-500">V1.0.0 // MODULAR WORKSPACE INTEGRATION</p>
             
-            {/* HIDDEN SECRET GATEWAY ANCHOR DOT */}
-<button 
-  onClick={(e) => {
-    // 1. MODAL CONFIGURATION WIZARD: Triggered via Shift + Click
-    if (e.shiftKey) {
-      const oldP = prompt("CONFIRM CURRENT PHRASE:");
-      const newP = prompt("ESTABLISH NEW PASSPHRASE:");
-      if (oldP !== null && newP !== null) {
-        changeVaultPasscode(oldP, newP);
-      }
-      return;
-    }
+            <button 
+              onClick={(e) => {
+                if (e.shiftKey) {
+                  const oldP = prompt("CONFIRM CURRENT PHRASE:");
+                  const newP = prompt("ESTABLISH NEW PASSPHRASE:");
+                  if (oldP !== null && newP !== null) {
+                    changeVaultPasscode(oldP, newP);
+                  }
+                  return;
+                }
 
-    // 2. STANDARD DECRYPTION AUTHENTICATION: Single click
-    if (isVaultUnlocked) {
-      setIsVaultUnlocked(false);
-      alert("SESSION LOCKED // DECRYPTION TERMINATED");
-    } else {
-      const pass = prompt("ENTER MASTER MATRIX VAULT PHRASE:");
-      if (pass === null) return; // User canceled the prompt
-      
-      if (pass === vaultPasscode) { 
-        setIsVaultUnlocked(true);
-        alert("ACCESS GRANTED // SECRET DECRYPTION ACTIVE");
-      } else {
-        alert("ACCESS DENIED // INCORRECT THRESHOLD PROTOCOL");
-        setIsVaultUnlocked(false);
-      }
-    }
-  }}
-  className={`w-1 h-1 rounded-full transition-colors duration-500 focus:outline-none ${
-    isVaultUnlocked ? 'bg-emerald-500 animate-pulse' : 'bg-slate-800 hover:bg-slate-700'
-  }`}
-  title="System Debug Node (Shift+Click to configure)"
-/>
+                if (isVaultUnlocked) {
+                  setIsVaultUnlocked(false);
+                  alert("SESSION LOCKED // DECRYPTION TERMINATED");
+                } else {
+                  const pass = prompt("ENTER MASTER MATRIX VAULT PHRASE:");
+                  if (pass === null) return;
+                  
+                  if (pass === vaultPasscode) { 
+                    setIsVaultUnlocked(true);
+                    alert("ACCESS GRANTED // SECRET DECRYPTION ACTIVE");
+                  } else {
+                    alert("ACCESS DENIED // INCORRECT THRESHOLD PROTOCOL");
+                    setIsVaultUnlocked(false);
+                  }
+                }
+              }}
+              className={`w-1 h-1 rounded-full transition-colors duration-500 focus:outline-none ${
+                isVaultUnlocked ? 'bg-emerald-500 animate-pulse' : 'bg-slate-800 hover:bg-slate-700'
+              }`}
+              title="System Debug Node (Shift+Click to configure)"
+            />
+          </div>
         </div>
         <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 px-3 py-1.5 rounded-lg">
           <ChibiCompanion state={companionState} taskCount={pendingTasks} />
@@ -199,6 +199,15 @@ export const Workspace = () => {
               onSelectDay={setSelectedDate} 
               onToggleHabit={toggleHabit} 
               onUpdateSleep={updateSleep} 
+            />
+          </Widget>
+
+          {/* MOUNTED MODULE FRAMEWORK LAYER */}
+          <Widget title="Unified Archives & Reports Ledger Book">
+            <BookLedger 
+              workspaceHooks={workspaceHooks} 
+              activeDay={selectedDate} 
+              onSelectDay={(dayNum) => setSelectedDate(dayNum)} 
             />
           </Widget>
         </div>
