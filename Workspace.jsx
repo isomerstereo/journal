@@ -19,9 +19,9 @@ export const Workspace = () => {
   const [companionState, setCompanionState] = useState('IDLE');
   const [selectedDate, setSelectedDate] = useState(null);
   const [isPromptMinimized, setIsPromptMinimized] = useState(false);
-  
 
   // Initialize unified hook framework layer
+ // Initialize unified hook framework layer
   const workspaceHooks = useWorkspaceData();
 
   const {
@@ -42,29 +42,18 @@ export const Workspace = () => {
     saveVaultEntry,
     changeVaultPasscode,
     
-    // Add fallback defaults here to guarantee safety:
+    // 1. Extract activeNotebook here to fix the ReferenceError
+    activeNotebook, 
+    
+    // Fallback defaults guarantee safety
     activeView = 'SHELF', 
     setActiveView = () => {},
     activeNotebookId = null,
     setActiveNotebookId = () => {}
   } = workspaceHooks;
 
-  // --- ROUTER VIEW CONTROLLER ---
-  
-  // View 1: If router is set to 'SHELF', show the library skeuomorphic shelf layout
-  if (activeView === 'SHELF') {
-    return (
-      <div className="min-h-screen bg-slate-950 p-6">
-        <BookLedger 
-          workspaceHooks={workspaceHooks} 
-          onSelectDay={(day) => {
-            // Optional: Auto-swap directly to the dashboard core focus mode on selection
-            setActiveView('JOURNAL_CORE');
-          }}
-        />
-      </div>
-    );
-  }
+  // 2. Safe local derivation fallback if the hook only passes down the ID
+  const currentNotebook = activeNotebook || (activeNotebookId ? { title: `Volume ${activeNotebookId}` } : null);
 
   // --- DATA TRANSFORMATION & FILTERING ---
   const activeEvents = selectedDate 
@@ -119,7 +108,7 @@ export const Workspace = () => {
     setIsModalOpen(true);
   };
 
- // --- RENDER ---
+  // --- RENDER ---
   return (
     <div className="min-h-screen bg-black text-slate-100 font-mono text-xs p-6 space-y-6">
       {/* Header Section */}
@@ -185,8 +174,8 @@ export const Workspace = () => {
       </header>
 
       {/* --- DYNAMIC CONDITIONAL ROUTING LAYER --- */}
-      {activeView === 'SHELF' || !activeNotebook ? (
-        /* CONDITION A: NO BOOK SELECTED OR ROUTER SET TO SHELF -> Show Only the Ledge Shelf Home UI Layout */
+      {activeView === 'SHELF' || !currentNotebook ? (
+        /* CONDITION A: NO BOOK SELECTED OR ROUTER SET TO SHELF */
         <div className="space-y-4">
           <Widget title="Master Library Shell Index // Home View">
             <BookLedger 
@@ -197,15 +186,14 @@ export const Workspace = () => {
           </Widget>
         </div>
       ) : (
-        /* CONDITION B: BOOK OPENED -> Render Dashboard Core Stream Layout */
+        /* CONDITION B: BOOK OPENED */
         <div className="space-y-4">
-          {/* Global Return Anchor to get back to shelf easily */}
           <div className="flex justify-end">
             <button 
               onClick={() => { 
                 setActiveNotebookId(null); 
                 setSelectedDate(null); 
-                setActiveView('SHELF'); // Safely remounts the bookshelf component view
+                setActiveView('SHELF'); 
               }}
               className="text-[11px] font-bold text-indigo-400 bg-slate-900 border border-slate-800 px-3 py-1 rounded hover:border-slate-700 hover:text-slate-200 transition-all"
             >
@@ -214,7 +202,7 @@ export const Workspace = () => {
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-            
+
             {/* Left Column: Planning, Book-Ledger, and Active Notes */}
             <div className="xl:col-span-7 space-y-6">
               {selectedDate && (
@@ -253,13 +241,13 @@ export const Workspace = () => {
                 />
               </Widget>
 
-              <Widget title={`Unified Archives & Reports Ledger Book // Active: ${activeNotebook.title}`}>
-                <BookLedger 
-                  workspaceHooks={workspaceHooks} 
-                  activeDay={selectedDate} 
-                  onSelectDay={(dayNum) => setSelectedDate(dayNum)} 
-                />
-              </Widget>
+              <Widget title={`Unified Archives & Reports Ledger Book // Active: ${currentNotebook?.title || 'Selected Volume'}`}>
+            <BookLedger 
+              workspaceHooks={workspaceHooks} 
+              activeDay={selectedDate} 
+              onSelectDay={(dayNum) => setSelectedDate(dayNum)} 
+            />
+          </Widget>
             </div>
 
             {/* Right Column: Feeds & Engines */}
