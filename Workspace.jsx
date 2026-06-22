@@ -20,10 +20,9 @@ export const Workspace = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [isPromptMinimized, setIsPromptMinimized] = useState(false);
 
-  // 1. Capture the full raw hook package object first for BookLedger
+  // Initialize unified hook framework layer
   const workspaceHooks = useWorkspaceData();
 
-  // 2. Destructure individual values cleanly from that same instance bundle
   const {
     calendarData,
     habitData,
@@ -40,7 +39,12 @@ export const Workspace = () => {
     setIsVaultUnlocked,
     vaultPasscode,    
     saveVaultEntry,
-    changeVaultPasscode,  
+    changeVaultPasscode,
+    
+    // Track whether a book is actively opened or if we are sitting on the shelf home UI
+    activeNotebookId,
+    setActiveNotebookId,
+    activeNotebook
   } = workspaceHooks;
 
   // --- DATA TRANSFORMATION & FILTERING ---
@@ -54,7 +58,6 @@ export const Workspace = () => {
 
   const pendingTasks = checklistTasks.filter(t => !t.done).length;
 
-  // Find current day text matching the active lock status
   const currentEntry = visibleEntries.find(e => e.day === selectedDate);
   const currentNoteText = currentEntry ? currentEntry.body : '';
 
@@ -106,7 +109,7 @@ export const Workspace = () => {
         <div>
           <h1 className="text-xl font-black tracking-wider text-indigo-400 uppercase">LIVING DESK CORE</h1>
           <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-[10px] text-slate-500">V1.0.0 // MODULAR WORKSPACE INTEGRATION</p>
+            <p className="text-[10px] text-slate-500">V1.0.0 // MODULAR HOME UI ARCHITECTURE</p>
             
             <button 
               onClick={(e) => {
@@ -142,6 +145,8 @@ export const Workspace = () => {
             />
           </div>
         </div>
+
+        {/* Companion Module Info Display */}
         <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 px-3 py-1.5 rounded-lg">
           <ChibiCompanion state={companionState} taskCount={pendingTasks} />
           <div className="w-px h-10 bg-slate-800 hidden sm:block" />
@@ -161,49 +166,11 @@ export const Workspace = () => {
         </div>
       </header>
 
-      {/* Main Grid Content */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        
-        {/* Left Column: Planning & Notes */}
-        <div className="xl:col-span-7 space-y-6">
-          {selectedDate && (
-            <Widget title={`Active Note Entry — Day ${selectedDate} ${currentEntry?.isSecret ? '[ENCRYPTED]' : ''}`}>
-              <div className="p-2 space-y-3">
-                <textarea
-                  className="w-full h-32 bg-slate-900 border border-amber-500/30 rounded p-3 text-xs text-amber-400 font-mono focus:outline-none focus:border-amber-500/80 transition-colors"
-                  placeholder={`Write your log entry for Day ${selectedDate}... Tag [[secret]] to encrypt.`}
-                  value={currentNoteText}
-                  onChange={(e) => handleNoteChange(selectedDate, e.target.value)}
-                />
-                <button onClick={() => setSelectedDate(null)} className="text-amber-500 text-[10px] hover:underline font-bold uppercase">Collapse View [×]</button>
-              </div>
-            </Widget>
-          )}
-
-          <Widget title="Visual Chronicle Planner">
-            <StoryCalendar 
-              currentMonth="June 2026" 
-              dailyData={calendarData} 
-              selectedDate={selectedDate}
-              onSelectDate={(day) => {
-                setSelectedDate(day);
-                if (day) setIsPromptMinimized(false);
-              }}
-            />
-          </Widget>
-
-          <Widget title={`Habit Matrix ${selectedDate ? `[Day ${selectedDate}]` : ''}`}>
-            <HabitMatrix 
-              daysData={habitData} 
-              activeDay={selectedDate} 
-              onSelectDay={setSelectedDate} 
-              onToggleHabit={toggleHabit} 
-              onUpdateSleep={updateSleep} 
-            />
-          </Widget>
-
-          {/* MOUNTED MODULE FRAMEWORK LAYER */}
-          <Widget title="Unified Archives & Reports Ledger Book">
+      {/* --- DYNAMIC CONDITIONAL ROUTING LAYER --- */}
+      {!activeNotebook ? (
+        /* CONDITION A: NO BOOK SELECTED -> Show Only the Ledge Shelf Home UI Layout */
+        <div className="space-y-4">
+          <Widget title="Master Library Shell Index // Home View">
             <BookLedger 
               workspaceHooks={workspaceHooks} 
               activeDay={selectedDate} 
@@ -211,42 +178,105 @@ export const Workspace = () => {
             />
           </Widget>
         </div>
-
-        {/* Right Column: Feeds & Engines */}
-        <div className="xl:col-span-5 space-y-6">
-          <Widget title={`Chronicle Feed ${selectedDate ? `(Day ${selectedDate})` : ''}`}>
-            <JournalTimeline 
-              events={activeEvents} 
-              activeDay={selectedDate} 
-              onAddEvent={() => handleAddEventTrigger(selectedDate)} 
-            />
-          </Widget>
-
-          <Widget title="Active Quest Log">
-            <UnifiedChecklist 
-              initialTasks={checklistTasks} 
-              activeDay={selectedDate} 
-              onToggleTask={handleToggleTask} 
-            />
-          </Widget>
-
-          <Widget title={`24-Hour Engine ${selectedDate ? `(Day ${selectedDate})` : ''}`}>
-            <TimeWheelLog 
-              timeBlocks={activeTimeBlocks} 
-              activeDay={selectedDate} 
-              onToggleHour={handleToggleHour}
-            />
-          </Widget>
-
-          <Widget title="Micro-Reflection Node" headerControls={selectedDate && (
-            <button onClick={() => setIsPromptMinimized(!isPromptMinimized)} className="text-[10px] border border-slate-700 px-2 rounded">
-              {isPromptMinimized ? 'Maximize [+]' : 'Minimize [-]'}
+      ) : (
+        /* CONDITION B: BOOK OPENED -> Render Dashboard Core Stream Layout */
+        <div className="space-y-4">
+          {/* Global Return Anchor to get back to shelf easily */}
+          <div className="flex justify-end">
+            <button 
+              onClick={() => { setActiveNotebookId(null); setSelectedDate(null); }}
+              className="text-[11px] font-bold text-indigo-400 bg-slate-900 border border-slate-800 px-3 py-1 rounded hover:border-slate-700 hover:text-slate-200 transition-all"
+            >
+              [◂ Close Volume & Return to Library Ledge]
             </button>
-          )}>
-            {!isPromptMinimized && <PromptEngine activeDay={selectedDate} onDeclineHelp={() => setIsPromptMinimized(true)} />}
-          </Widget>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            
+            {/* Left Column: Planning, Book-Ledger, and Active Notes */}
+            <div className="xl:col-span-7 space-y-6">
+              {selectedDate && (
+                <Widget title={`Active Note Entry — Day ${selectedDate} ${currentEntry?.isSecret ? '[ENCRYPTED]' : ''}`}>
+                  <div className="p-2 space-y-3">
+                    <textarea
+                      className="w-full h-32 bg-slate-900 border border-amber-500/30 rounded p-3 text-xs text-amber-400 font-mono focus:outline-none focus:border-amber-500/80 transition-colors"
+                      placeholder={`Write your log entry for Day ${selectedDate}... Tag [[secret]] to encrypt.`}
+                      value={currentNoteText}
+                      onChange={(e) => handleNoteChange(selectedDate, e.target.value)}
+                    />
+                    <button onClick={() => setSelectedDate(null)} className="text-amber-500 text-[10px] hover:underline font-bold uppercase">Collapse View [×]</button>
+                  </div>
+                </Widget>
+              )}
+
+              <Widget title="Visual Chronicle Planner">
+                <StoryCalendar 
+                  currentMonth="June 2026" 
+                  dailyData={calendarData} 
+                  selectedDate={selectedDate}
+                  onSelectDate={(day) => {
+                    setSelectedDate(day);
+                    if (day) setIsPromptMinimized(false);
+                  }}
+                />
+              </Widget>
+
+              <Widget title={`Habit Matrix ${selectedDate ? `[Day ${selectedDate}]` : ''}`}>
+                <HabitMatrix 
+                  daysData={habitData} 
+                  activeDay={selectedDate} 
+                  onSelectDay={setSelectedDate} 
+                  onToggleHabit={toggleHabit} 
+                  onUpdateSleep={updateSleep} 
+                />
+              </Widget>
+
+              <Widget title={`Unified Archives & Reports Ledger Book // Active: ${activeNotebook.title}`}>
+                <BookLedger 
+                  workspaceHooks={workspaceHooks} 
+                  activeDay={selectedDate} 
+                  onSelectDay={(dayNum) => setSelectedDate(dayNum)} 
+                />
+              </Widget>
+            </div>
+
+            {/* Right Column: Feeds & Engines */}
+            <div className="xl:col-span-5 space-y-6">
+              <Widget title={`Chronicle Feed ${selectedDate ? `(Day ${selectedDate})` : ''}`}>
+                <JournalTimeline 
+                  events={activeEvents} 
+                  activeDay={selectedDate} 
+                  onAddEvent={() => handleAddEventTrigger(selectedDate)} 
+                />
+              </Widget>
+
+              <Widget title="Active Quest Log">
+                <UnifiedChecklist 
+                  initialTasks={checklistTasks} 
+                  activeDay={selectedDate} 
+                  onToggleTask={handleToggleTask} 
+                />
+              </Widget>
+
+              <Widget title={`24-Hour Engine ${selectedDate ? `(Day ${selectedDate})` : ''}`}>
+                <TimeWheelLog 
+                  timeBlocks={activeTimeBlocks} 
+                  activeDay={selectedDate} 
+                  onToggleHour={handleToggleHour}
+                />
+              </Widget>
+
+              <Widget title="Micro-Reflection Node" headerControls={selectedDate && (
+                <button onClick={() => setIsPromptMinimized(!isPromptMinimized)} className="text-[10px] border border-slate-700 px-2 rounded">
+                  {isPromptMinimized ? 'Maximize [+]' : 'Minimize [-]'}
+                </button>
+              )}>
+                {!isPromptMinimized && <PromptEngine activeDay={selectedDate} onDeclineHelp={() => setIsPromptMinimized(true)} />}
+              </Widget>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Global Modals */}
       {isModalOpen && (

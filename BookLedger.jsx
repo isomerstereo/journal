@@ -247,10 +247,19 @@ export const BookLedger = ({ workspaceHooks, activeDay = null, onSelectDay }) =>
               <div key={book.id} className="group flex flex-col items-center justify-end h-40 relative">
                 
                 {/* 3D Moving Spine Representation */}
-                <div
-                  onClick={() => setActiveNotebookId(book.id)}
-                  className={`w-20 h-28 rounded-r shadow-2xl border-l-[4px] border-black/30 transform group-hover:-translate-y-2 cursor-pointer transition-all duration-300 flex flex-col justify-between p-2 select-none ${book.coverImage}`}
-                >
+               {/* 3D Moving Spine Representation */}
+<div
+  onClick={() => {
+    // 1. Core assignment setting your open book instance id
+    setActiveNotebookId(book.id);
+
+    // 2. If it's a journal volume type, set the view router layout to show the main grid dashboard panels
+    if (book.type === 'journal' && typeof workspaceHooks.setActiveView === 'function') {
+      workspaceHooks.setActiveView('JOURNAL_CORE');
+    }
+  }}
+  className={`w-20 h-28 rounded-r shadow-2xl border-l-[4px] border-black/30 transform group-hover:-translate-y-2 cursor-pointer transition-all duration-300 flex flex-col justify-between p-2 select-none ${book.coverImage}`}
+>
                   <div className="text-[8px] opacity-40 font-bold tracking-tighter uppercase truncate">{book.type}</div>
                   <div className="text-[10px] font-bold text-slate-100 leading-tight text-center truncate line-clamp-3 my-auto drop-shadow-md">
                     {book.title}
