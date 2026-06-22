@@ -3,7 +3,7 @@ import { useWorkspaceData } from './useWorkspaceData';
 import { Widget } from './Widget';
 import { StoryCalendar } from './StoryCalendar';
 import { ChibiCompanion } from './ChibiCompanion';
-import { EventModal } from './EventModal'; // Assuming creation of this component
+import { EventModal } from './EventModal'; 
 
 import { HabitMatrix } from './habitmatrix';
 import { TimeWheelLog } from './timewheellog';
@@ -18,19 +18,24 @@ export const Workspace = () => {
   const [companionState, setCompanionState] = useState('IDLE');
   const [selectedDate, setSelectedDate] = useState(null);
   const [isPromptMinimized, setIsPromptMinimized] = useState(false);
-  const [diaryNotes, setDiaryNotes] = useState({}); 
 
   const {
     calendarData,
     habitData,
-    toggleHabit,  // Extracted function
-    updateSleep,  // Extracted function
+    toggleHabit,  
+    updateSleep,  
     timeWheelData,
     setTimeWheelData,
     timelineEvents,
-    setTimelineEvents, // Ensure this is explicitly extracted for the modal line to work
+    setTimelineEvents, 
     checklistTasks,
     setChecklistTasks,
+    
+    // EXTRACTED SECURE JOURNAL ARCHITECTURE VARIABLES
+    visibleEntries,
+    isVaultUnlocked,
+    setIsVaultUnlocked,
+    saveVaultEntry,
   } = useWorkspaceData();
 
   // --- DATA TRANSFORMATION & FILTERING ---
@@ -44,9 +49,21 @@ export const Workspace = () => {
 
   const pendingTasks = checklistTasks.filter(t => !t.done).length;
 
+  // Find current day text matching the active lock status
+  const currentEntry = visibleEntries.find(e => e.day === selectedDate);
+  const currentNoteText = currentEntry ? currentEntry.body : '';
+
   // --- EVENT HANDLERS ---
   const handleNoteChange = (day, text) => {
-    setDiaryNotes(prev => ({ ...prev, [day]: text }));
+    // Extract inline bracket hashes for indexing tags later
+    const tagMatches = text.match(/#\w+/g) || [];
+    const cleanTags = tagMatches.map(t => t.replace('#', ''));
+    
+    saveVaultEntry(day, {
+      title: `LOG REFRESH — DAY ${day}`,
+      body: text,
+      tags: cleanTags
+    });
   };
 
   const handleToggleTask = (id) => {
@@ -84,7 +101,26 @@ export const Workspace = () => {
       <header className="flex justify-between items-center mb-6 pb-4 border-b border-slate-800">
         <div>
           <h1 className="text-xl font-black tracking-wider text-indigo-400 uppercase">LIVING DESK CORE</h1>
-          <p className="text-[10px] text-slate-500 mt-0.5">V1.0.0 // MODULAR WORKSPACE INTEGRATION</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-[10px] text-slate-500">V1.0.0 // MODULAR WORKSPACE INTEGRATION</p>
+            
+            {/* HIDDEN SECRET GATEWAY ANCHOR DOT */}
+            <button 
+              onClick={() => {
+                const pass = prompt("ENTER MASTER MATRIX VAULT PHRASE:");
+                if (pass === "1234") { 
+                  setIsVaultUnlocked(true);
+                  alert("ACCESS GRANTED // SECRET DECRYPTION ACTIVE");
+                } else {
+                  setIsVaultUnlocked(false);
+                }
+              }}
+              className={`w-1 h-1 rounded-full transition-colors duration-500 focus:outline-none ${
+                isVaultUnlocked ? 'bg-emerald-500 animate-pulse' : 'bg-slate-800 hover:bg-slate-700'
+              }`}
+              title="System Debug Node"
+            />
+          </div>
         </div>
         <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 px-3 py-1.5 rounded-lg">
           <ChibiCompanion state={companionState} taskCount={pendingTasks} />
@@ -111,12 +147,12 @@ export const Workspace = () => {
         {/* Left Column: Planning & Notes */}
         <div className="xl:col-span-7 space-y-6">
           {selectedDate && (
-            <Widget title={`Active Note Entry — Day ${selectedDate}`}>
+            <Widget title={`Active Note Entry — Day ${selectedDate} ${currentEntry?.isSecret ? '[ENCRYPTED]' : ''}`}>
               <div className="p-2 space-y-3">
                 <textarea
                   className="w-full h-32 bg-slate-900 border border-amber-500/30 rounded p-3 text-xs text-amber-400 font-mono focus:outline-none focus:border-amber-500/80 transition-colors"
-                  placeholder={`Write your log entry for Day ${selectedDate}...`}
-                  value={diaryNotes[selectedDate] || ''}
+                  placeholder={`Write your log entry for Day ${selectedDate}... Tag [[secret]] to encrypt.`}
+                  value={currentNoteText}
                   onChange={(e) => handleNoteChange(selectedDate, e.target.value)}
                 />
                 <button onClick={() => setSelectedDate(null)} className="text-amber-500 text-[10px] hover:underline font-bold uppercase">Collapse View [×]</button>
@@ -136,23 +172,22 @@ export const Workspace = () => {
             />
           </Widget>
 
-          {/* Replace your current HabitMatrix instantiation with this: */}
-<Widget title={`Habit Matrix ${selectedDate ? `[Day ${selectedDate}]` : ''}`}>
-  <HabitMatrix 
-    daysData={habitData} 
-    activeDay={selectedDate} 
-    onSelectDay={setSelectedDate} 
-    onToggleHabit={toggleHabit} 
-    onUpdateSleep={updateSleep} 
-  />
-</Widget>
+          <Widget title={`Habit Matrix ${selectedDate ? `[Day ${selectedDate}]` : ''}`}>
+            <HabitMatrix 
+              daysData={habitData} 
+              activeDay={selectedDate} 
+              onSelectDay={setSelectedDate} 
+              onToggleHabit={toggleHabit} 
+              onUpdateSleep={updateSleep} 
+            />
+          </Widget>
         </div>
 
         {/* Right Column: Feeds & Engines */}
         <div className="xl:col-span-5 space-y-6">
           <Widget title={`Chronicle Feed ${selectedDate ? `(Day ${selectedDate})` : ''}`}>
             <JournalTimeline 
-              events={timelineEvents} 
+              events={activeEvents} 
               activeDay={selectedDate} 
               onAddEvent={() => handleAddEventTrigger(selectedDate)} 
             />
@@ -190,19 +225,13 @@ export const Workspace = () => {
           day={currentEditingDay} 
           onClose={() => setIsModalOpen(false)} 
           onSave={(data) => {
-            // Logic to create a new event and update the state
             const newEvent = {
               id: Date.now(), 
               day: currentEditingDay,
               ...data,
               time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
-            
-            // This assumes setTimelineEvents exists in your useWorkspaceData hook
-            // If your hook returns timelineEvents as a standard array, 
-            // ensure you have the 'setTimelineEvents' setter available.
             setTimelineEvents([...timelineEvents, newEvent]);
-            
             setIsModalOpen(false);
           }}
         />
