@@ -33,7 +33,8 @@ export const useWorkspaceData = () => {
   const [activeSection, setActiveSection] = useState('all');
   
   // Tracks the currently opened notebook object (null means user is looking at the bookshelf)
-  const [activeNotebookId, setActiveNotebookId] = useState(null);
+  const [activeView, setActiveView] = React.useState('SHELF'); // Views: 'SHELF', 'JOURNAL_CORE', etc.
+  const [activeNotebookId, setActiveNotebookId] = React.useState(null);
 
   // Core Notebooks Registry State
   const [notebooks, setNotebooks] = useState(() => {
