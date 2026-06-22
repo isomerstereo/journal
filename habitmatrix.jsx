@@ -3,6 +3,8 @@ import React from 'react';
 export const HabitMatrix = ({ 
   habits = ['Train', 'Meditate', 'Planning', 'SMM', 'Read', 'No Sugar', 'Work', 'No Caffeine', 'Diet', 'Pray'],
   daysData = [],
+  activeDay = null, 
+  onSelectDay,      
   onToggleHabit,
   onUpdateSleep
 }) => {
@@ -50,10 +52,15 @@ export const HabitMatrix = ({
           <table className="border-collapse text-center">
             <thead>
               <tr>
-                <th className="border border-slate-800 p-1 text-[10px] text-slate-500 font-bold w-10 h-24 align-bottom">DAYS</th>
+                {/* EMPTY CELL ANCHOR FOR THE DAY NUMBER COLUMN */}
+                <th className="border border-slate-800 p-1 w-8 h-24 text-[10px] text-slate-500 font-bold uppercase tracking-wider align-bottom">
+                  Day
+                </th>
+                
                 {habits.map((habit) => (
-                  <th key={habit} className="border border-slate-800 p-1 w-8 h-24 relative align-bottom">
-                    <span className="absolute bottom-2 left-1/2 -translate-x-1/2 origin-bottom-left -rotate-90 whitespace-nowrap text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                  <th key={habit} className="border border-slate-800 w-8 h-24 relative min-w-8 overflow-hidden">
+                    {/* Centered vertical layout container */}
+                    <span className="absolute inset-x-0 bottom-4 flex items-center justify-center [writing-mode:vertical-lr] rotate-180 text-[10px] font-bold tracking-wider text-slate-400 uppercase whitespace-nowrap">
                       {habit}
                     </span>
                   </th>
@@ -61,27 +68,46 @@ export const HabitMatrix = ({
               </tr>
             </thead>
             <tbody>
-              {daysData.map((data) => (
-                <tr key={data.day} style={{ height: `${rowHeight}px` }}>
-                  <td className="border border-slate-800 font-bold text-slate-500 text-[10px]">{data.day}</td>
-                  {habits.map((habit) => {
-                    const status = data.habitsStatus?.[habit] || '•';
-                    return (
-                      <td 
-                        key={habit} 
-                        onClick={() => onToggleHabit && onToggleHabit(data.day, habit)}
-                        className={`border border-slate-800 font-bold transition-colors cursor-pointer select-none ${
-                          status === 'X' 
-                            ? 'text-indigo-400 bg-indigo-950/20 hover:bg-indigo-900/30' 
-                            : 'text-slate-700 hover:text-slate-500 hover:bg-slate-900/40'
-                        }`}
-                      >
-                        {status}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+              {daysData.map((data) => {
+                const isActive = activeDay === data.day;
+
+                return (
+                  <tr 
+                    key={data.day} 
+                    style={{ height: `${rowHeight}px` }}
+                    className={`transition-colors ${isActive ? 'bg-indigo-950/30' : ''}`}
+                  >
+                    {/* Clicking the day cell toggles global selection */}
+                    <td 
+                      onClick={() => onSelectDay && onSelectDay(isActive ? null : data.day)}
+                      className={`border border-slate-800 font-bold text-[10px] cursor-pointer select-none transition-colors ${
+                        isActive ? 'text-indigo-400 bg-indigo-900/20' : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      {data.day}
+                    </td>
+                    
+                    {habits.map((habit) => {
+                      const status = data.habitsStatus?.[habit] || '•';
+                      return (
+                        <td 
+                          key={habit} 
+                          onClick={() => onToggleHabit && onToggleHabit(data.day, habit)}
+                          className={`border font-bold transition-colors cursor-pointer select-none ${
+                            isActive ? 'border-indigo-800/40' : 'border-slate-800'
+                          } ${
+                            status === 'X' 
+                              ? 'text-indigo-400 bg-indigo-950/20 hover:bg-indigo-900/30' 
+                              : 'text-slate-700 hover:text-slate-500 hover:bg-slate-900/40'
+                          }`}
+                        >
+                          {status}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

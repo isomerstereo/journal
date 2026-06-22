@@ -136,13 +136,16 @@ export const Workspace = () => {
             />
           </Widget>
 
-          <Widget title={`Habit Matrix ${selectedDate ? `[Day ${selectedDate}]` : ''}`}>
-    <HabitMatrix 
-      daysData={habitData} 
-      onToggleHabit={toggleHabit} 
-      onUpdateSleep={updateSleep} 
-    />
-  </Widget>
+          {/* Replace your current HabitMatrix instantiation with this: */}
+<Widget title={`Habit Matrix ${selectedDate ? `[Day ${selectedDate}]` : ''}`}>
+  <HabitMatrix 
+    daysData={habitData} 
+    activeDay={selectedDate} 
+    onSelectDay={setSelectedDate} 
+    onToggleHabit={toggleHabit} 
+    onUpdateSleep={updateSleep} 
+  />
+</Widget>
         </div>
 
         {/* Right Column: Feeds & Engines */}
