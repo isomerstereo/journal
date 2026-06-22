@@ -65,11 +65,27 @@ export const HabitMatrix = ({
                     </span>
                   </th>
                 ))}
+
+                {/* HEADER CELL TO MATCH PROGRESS ROW ALIGNMENT */}
+                <th className="border border-slate-800 px-3 h-24 text-[10px] text-slate-500 font-bold uppercase tracking-wider align-bottom text-left hidden md:table-cell min-w-[110px]">
+                  Completion
+                </th>
               </tr>
             </thead>
             <tbody>
               {daysData.map((data) => {
                 const isActive = activeDay === data.day;
+
+                // Calculate daily metrics for the progress indicator
+                const totalHabitsCount = habits.length;
+                const completedCount = habits.filter(h => data.habitsStatus?.[h] === 'X').length;
+                const completionPercent = totalHabitsCount > 0 ? Math.round((completedCount / totalHabitsCount) * 100) : 0;
+
+                // Generate terminal-style loading bar: e.g., [████░░░░░░]
+                const totalBlocks = 10;
+                const filledBlocks = Math.round((completionPercent / 100) * totalBlocks);
+                const emptyBlocks = totalBlocks - filledBlocks;
+                const barString = `[${'█'.repeat(filledBlocks)}${'░'.repeat(emptyBlocks)}]`;
 
                 return (
                   <tr 
@@ -77,7 +93,7 @@ export const HabitMatrix = ({
                     style={{ height: `${rowHeight}px` }}
                     className={`transition-colors ${isActive ? 'bg-indigo-950/30' : ''}`}
                   >
-                    {/* Clicking the day cell toggles global selection */}
+                    {/* Day Number Target Column */}
                     <td 
                       onClick={() => onSelectDay && onSelectDay(isActive ? null : data.day)}
                       className={`border border-slate-800 font-bold text-[10px] cursor-pointer select-none transition-colors ${
@@ -87,6 +103,7 @@ export const HabitMatrix = ({
                       {data.day}
                     </td>
                     
+                    {/* Habit Checkboxes */}
                     {habits.map((habit) => {
                       const status = data.habitsStatus?.[habit] || '•';
                       return (
@@ -105,6 +122,14 @@ export const HabitMatrix = ({
                         </td>
                       );
                     })}
+
+                    {/* INLINE PROGRESS COLUMN RIGHT BEFORE THE SLEEP GRAPH SPLIT */}
+                    <td className={`border border-slate-800 px-2 text-left font-mono text-[10px] whitespace-nowrap hidden md:table-cell ${
+                      completionPercent === 100 ? 'text-emerald-400' : completionPercent > 50 ? 'text-indigo-400' : 'text-slate-500'
+                    }`}>
+                      <span className="opacity-60 mr-1.5">{barString}</span>
+                      <span>{completionPercent}%</span>
+                    </td>
                   </tr>
                 );
               })}

@@ -25,6 +25,20 @@ export const useWorkspaceData = () => {
   const [timelineEvents, setTimelineEvents] = useState([]);
   const [checklistTasks, setChecklistTasks] = useState([]);
 
+  // --- NEW VAULT STATE TRACKERS ---
+  const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
+  const [vaultEntries, setVaultEntries] = useState(() => {
+    const saved = localStorage.getItem('desk_vault_entries');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse initial vault entries:", e);
+      }
+    }
+    return []; // Empty book ledger initialization
+  });
+
   // 2. Load all data from localStorage on mount
   useEffect(() => {
     const storageKeys = {
@@ -33,6 +47,7 @@ export const useWorkspaceData = () => {
       timewheel: 'desk_timewheel',
       timeline: 'desk_timeline',
       tasks: 'desk_tasks',
+      vault: 'desk_vault_entries'
     };
 
     try {
@@ -41,12 +56,14 @@ export const useWorkspaceData = () => {
       const wheel = localStorage.getItem(storageKeys.timewheel);
       const time = localStorage.getItem(storageKeys.timeline);
       const task = localStorage.getItem(storageKeys.tasks);
+      const vlt = localStorage.getItem(storageKeys.vault);
 
       if (cal) setCalendarData(JSON.parse(cal));
       if (hab) setHabitData(JSON.parse(hab));
       if (wheel) setTimeWheelData(JSON.parse(wheel));
       if (time) setTimelineEvents(JSON.parse(time));
       if (task) setChecklistTasks(JSON.parse(task));
+      if (vlt) setVaultEntries(JSON.parse(vlt));
     } catch (e) {
       console.error("Failed to load workspace data:", e);
     }
@@ -69,6 +86,42 @@ export const useWorkspaceData = () => {
   const updateChecklist = (newTasks) => {
     setChecklistTasks(newTasks);
     saveToStorage('desk_tasks', newTasks);
+  };
+
+  // --- NEW VAULT UPDATER HANDLING ---
+  const saveVaultEntry = (dayNum, entryPayload) => {
+    const { title, body, tags = [] } = entryPayload;
+    
+    // Check for explicit privacy flags
+    const isSecret = tags.includes('secret') || body.includes('[[secret]]');
+
+    const updatedVault = [...vaultEntries];
+    const existingIndex = updatedVault.findIndex(e => e.day === dayNum && e.isSecret === isSecret);
+
+    const targetEntry = {
+      id: existingIndex > -1 ? updatedVault[existingIndex].id : `vault-${Date.now()}`,
+      day: dayNum,
+      title: title || `LOG ENTRY — DAY ${dayNum}`,
+      body: body || '',
+      tags: tags,
+      isSecret: isSecret,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (existingIndex > -1) {
+      updatedVault[existingIndex] = targetEntry;
+    } else {
+      updatedVault.push(targetEntry);
+    }
+
+    setVaultEntries(updatedVault);
+    saveToStorage('desk_vault_entries', updatedVault);
+  };
+
+  const deleteVaultEntry = (entryId) => {
+    const updatedVault = vaultEntries.filter(e => e.id !== entryId);
+    setVaultEntries(updatedVault);
+    saveToStorage('desk_vault_entries', updatedVault);
   };
 
   // Matrix State Modifiers
@@ -103,6 +156,9 @@ export const useWorkspaceData = () => {
     saveToStorage('desk_habits', updatedHabits);
   };
 
+  // Dynamic filter masking restricted notes away from unauthorized sessions
+  const visibleEntries = vaultEntries.filter(entry => !entry.isSecret || isVaultUnlocked);
+
   // 5. Exposed API
   return {
     // Calendar
@@ -126,5 +182,13 @@ export const useWorkspaceData = () => {
     // Checklist
     checklistTasks,
     setChecklistTasks: updateChecklist,
+
+    // Encrypted Vault Extensions
+    visibleEntries,
+    vaultEntries, // Raw copy for special administrative contexts if required
+    isVaultUnlocked,
+    setIsVaultUnlocked,
+    saveVaultEntry,
+    deleteVaultEntry
   };
 };
