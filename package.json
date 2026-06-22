@@ -1,6 +1,7 @@
 {
   "name": "living-desk-core",
   "version": "1.0.0",
+  "type": "module",
   "homepage": "https://brome.github.io/journal/",
   "scripts": {
     "dev": "vite",
