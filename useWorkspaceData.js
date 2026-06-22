@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 export const useWorkspaceData = () => {
-  // 1. Core State Hooks for all widgets
+  // 1. Core State Hooks
   const [calendarData, setCalendarData] = useState({});
   const [habitData, setHabitData] = useState([]);
   const [timeWheelData, setTimeWheelData] = useState({});
@@ -10,66 +10,70 @@ export const useWorkspaceData = () => {
 
   // 2. Load all data from localStorage on mount
   useEffect(() => {
-    const storage = {
-      calendar: localStorage.getItem('desk_calendar'),
-      habits: localStorage.getItem('desk_habits'),
-      timewheel: localStorage.getItem('desk_timewheel'),
-      timeline: localStorage.getItem('desk_timeline'),
-      tasks: localStorage.getItem('desk_tasks'),
+    const storageKeys = {
+      calendar: 'desk_calendar',
+      habits: 'desk_habits',
+      timewheel: 'desk_timewheel',
+      timeline: 'desk_timeline',
+      tasks: 'desk_tasks',
     };
 
-    if (storage.calendar) setCalendarData(JSON.parse(storage.calendar));
-    if (storage.habits) setHabitData(JSON.parse(storage.habits));
-    if (storage.timewheel) setTimeWheelData(JSON.parse(storage.timewheel));
-    if (storage.timeline) setTimelineEvents(JSON.parse(storage.timeline));
-    if (storage.tasks) setChecklistTasks(JSON.parse(storage.tasks));
+    try {
+      const cal = localStorage.getItem(storageKeys.calendar);
+      const hab = localStorage.getItem(storageKeys.habits);
+      const wheel = localStorage.getItem(storageKeys.timewheel);
+      const time = localStorage.getItem(storageKeys.timeline);
+      const task = localStorage.getItem(storageKeys.tasks);
+
+      if (cal) setCalendarData(JSON.parse(cal));
+      if (hab) setHabitData(JSON.parse(hab));
+      if (wheel) setTimeWheelData(JSON.parse(wheel));
+      if (time) setTimelineEvents(JSON.parse(time));
+      if (task) setChecklistTasks(JSON.parse(task));
+    } catch (e) {
+      console.error("Failed to load workspace data:", e);
+    }
   }, []);
 
-  // 3. State Updaters (Actions)
-  const updateCalendarDay = (day, state, vitals) => {
-    const updated = { ...calendarData, [day]: { state, vitals } };
-    setCalendarData(updated);
-    localStorage.setItem('desk_calendar', JSON.stringify(updated));
+  // 3. Sync helpers (Auto-save logic)
+  const saveToStorage = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+
+  // 4. Wrapped Setters (These update state AND localStorage)
+  const updateTimeline = (newEvents) => {
+    setTimelineEvents(newEvents);
+    saveToStorage('desk_timeline', newEvents);
   };
 
-  const toggleChecklistTask = (id) => {
-    const updated = checklistTasks.map(task => 
-      task.id === id ? { ...task, done: !task.done } : task
-    );
-    setChecklistTasks(updated);
-    localStorage.setItem('desk_tasks', JSON.stringify(updated));
+  const updateTimeWheel = (newData) => {
+    setTimeWheelData(newData);
+    saveToStorage('desk_timewheel', newData);
   };
 
-  const addTimelineEvent = (type, title, desc) => {
-    const newEvent = {
-      id: Date.now(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      type,
-      title,
-      desc
-    };
-    const updated = [newEvent, ...timelineEvents];
-    setTimelineEvents(updated);
-    localStorage.setItem('desk_timeline', JSON.stringify(updated));
+  const updateChecklist = (newTasks) => {
+    setChecklistTasks(newTasks);
+    saveToStorage('desk_tasks', newTasks);
   };
 
-  const updateTimeWheelHour = (hour, category) => {
-    const updated = { ...timeWheelData, [hour]: category };
-    setTimeWheelData(updated);
-    localStorage.setItem('desk_timewheel', JSON.stringify(updated));
-  };
-
+  // 5. Exposed API
   return {
+    // Calendar
     calendarData,
-    updateCalendarDay,
+    setCalendarData,
+    
+    // Habits
     habitData,
     setHabitData,
+    
+    // TimeWheel
     timeWheelData,
-    updateTimeWheelHour,
+    setTimeWheelData: updateTimeWheel, // Use the sync-enabled setter
+    
+    // Timeline
     timelineEvents,
-    addTimelineEvent,
+    setTimelineEvents: updateTimeline, // Use the sync-enabled setter
+    
+    // Checklist
     checklistTasks,
-    toggleChecklistTask,
-    setChecklistTasks
+    setChecklistTasks: updateChecklist, // Use the sync-enabled setter
   };
 };
