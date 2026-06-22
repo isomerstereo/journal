@@ -35,7 +35,9 @@ export const Workspace = () => {
     visibleEntries,
     isVaultUnlocked,
     setIsVaultUnlocked,
+    vaultPasscode,    //pull passcode
     saveVaultEntry,
+    changeVaultPasscode,  //pull setter
   } = useWorkspaceData();
 
   // --- DATA TRANSFORMATION & FILTERING ---
@@ -105,22 +107,40 @@ export const Workspace = () => {
             <p className="text-[10px] text-slate-500">V1.0.0 // MODULAR WORKSPACE INTEGRATION</p>
             
             {/* HIDDEN SECRET GATEWAY ANCHOR DOT */}
-            <button 
-              onClick={() => {
-                const pass = prompt("ENTER MASTER MATRIX VAULT PHRASE:");
-                if (pass === "1234") { 
-                  setIsVaultUnlocked(true);
-                  alert("ACCESS GRANTED // SECRET DECRYPTION ACTIVE");
-                } else {
-                  setIsVaultUnlocked(false);
-                }
-              }}
-              className={`w-1 h-1 rounded-full transition-colors duration-500 focus:outline-none ${
-                isVaultUnlocked ? 'bg-emerald-500 animate-pulse' : 'bg-slate-800 hover:bg-slate-700'
-              }`}
-              title="System Debug Node"
-            />
-          </div>
+<button 
+  onClick={(e) => {
+    // 1. MODAL CONFIGURATION WIZARD: Triggered via Shift + Click
+    if (e.shiftKey) {
+      const oldP = prompt("CONFIRM CURRENT PHRASE:");
+      const newP = prompt("ESTABLISH NEW PASSPHRASE:");
+      if (oldP !== null && newP !== null) {
+        changeVaultPasscode(oldP, newP);
+      }
+      return;
+    }
+
+    // 2. STANDARD DECRYPTION AUTHENTICATION: Single click
+    if (isVaultUnlocked) {
+      setIsVaultUnlocked(false);
+      alert("SESSION LOCKED // DECRYPTION TERMINATED");
+    } else {
+      const pass = prompt("ENTER MASTER MATRIX VAULT PHRASE:");
+      if (pass === null) return; // User canceled the prompt
+      
+      if (pass === vaultPasscode) { 
+        setIsVaultUnlocked(true);
+        alert("ACCESS GRANTED // SECRET DECRYPTION ACTIVE");
+      } else {
+        alert("ACCESS DENIED // INCORRECT THRESHOLD PROTOCOL");
+        setIsVaultUnlocked(false);
+      }
+    }
+  }}
+  className={`w-1 h-1 rounded-full transition-colors duration-500 focus:outline-none ${
+    isVaultUnlocked ? 'bg-emerald-500 animate-pulse' : 'bg-slate-800 hover:bg-slate-700'
+  }`}
+  title="System Debug Node (Shift+Click to configure)"
+/>
         </div>
         <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 px-3 py-1.5 rounded-lg">
           <ChibiCompanion state={companionState} taskCount={pendingTasks} />

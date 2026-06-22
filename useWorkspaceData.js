@@ -25,7 +25,7 @@ export const useWorkspaceData = () => {
   const [timelineEvents, setTimelineEvents] = useState([]);
   const [checklistTasks, setChecklistTasks] = useState([]);
 
-  // --- NEW VAULT STATE TRACKERS ---
+  // --- VAULT CORE & SECURITY STORAGE ---
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
   const [vaultEntries, setVaultEntries] = useState(() => {
     const saved = localStorage.getItem('desk_vault_entries');
@@ -36,7 +36,17 @@ export const useWorkspaceData = () => {
         console.error("Failed to parse initial vault entries:", e);
       }
     }
-    return []; // Empty book ledger initialization
+    return [];
+  });
+
+  // Fetch or set secret entry master passcode baseline
+  const [vaultPasscode, setVaultPasscode] = useState(() => {
+    const savedPass = localStorage.getItem('desk_vault_passcode');
+    if (!savedPass) {
+      localStorage.setItem('desk_vault_passcode', '1234');
+      return '1234';
+    }
+    return savedPass;
   });
 
   // 2. Load all data from localStorage on mount
@@ -88,11 +98,27 @@ export const useWorkspaceData = () => {
     saveToStorage('desk_tasks', newTasks);
   };
 
-  // --- NEW VAULT UPDATER HANDLING ---
+  // --- SECURE VAULT PASSPHRASE MUTATOR ---
+  const changeVaultPasscode = (oldPass, newPass) => {
+    if (oldPass !== vaultPasscode) {
+      alert("ERROR: INVALID SECURITY AUTHORIZATION KEY");
+      return false;
+    }
+    if (!newPass || newPass.trim() === "") {
+      alert("ERROR: PASSCODE CANNOT BE BLANK");
+      return false;
+    }
+    setVaultPasscode(newPass);
+    saveToStorage('desk_vault_passcode', newPass);
+    alert("SECURITY CONFIGURATION REFRESHED // NEW KEY STORED");
+    return true;
+  };
+
+  // --- VAULT STORAGE JOURNAL UPDATER ---
   const saveVaultEntry = (dayNum, entryPayload) => {
     const { title, body, tags = [] } = entryPayload;
     
-    // Check for explicit privacy flags
+    // Auto-detect secret tag parameters or bracket syntax
     const isSecret = tags.includes('secret') || body.includes('[[secret]]');
 
     const updatedVault = [...vaultEntries];
@@ -124,7 +150,7 @@ export const useWorkspaceData = () => {
     saveToStorage('desk_vault_entries', updatedVault);
   };
 
-  // Matrix State Modifiers
+  // Matrix Habit State Modifiers
   const toggleHabit = (dayNum, habitName) => {
     const updatedHabits = habitData.map(dayObj => {
       if (dayObj.day !== dayNum) return dayObj;
@@ -185,10 +211,12 @@ export const useWorkspaceData = () => {
 
     // Encrypted Vault Extensions
     visibleEntries,
-    vaultEntries, // Raw copy for special administrative contexts if required
+    vaultEntries,
     isVaultUnlocked,
     setIsVaultUnlocked,
+    vaultPasscode,
     saveVaultEntry,
-    deleteVaultEntry
+    deleteVaultEntry,
+    changeVaultPasscode
   };
 };
