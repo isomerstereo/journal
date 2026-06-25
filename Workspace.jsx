@@ -19,7 +19,11 @@ export const Workspace = () => {
   const [companionState, setCompanionState] = useState('IDLE');
   const [selectedDate, setSelectedDate] = useState(null);
   const [isPromptMinimized, setIsPromptMinimized] = useState(false);
-
+  const [editorState, setEditorState] = useState({
+    isOpen: false,
+    isMinimized: false,
+    activeDay: null
+  });
   // Initialize unified hook framework layer
  // Initialize unified hook framework layer
   const workspaceHooks = useWorkspaceData();

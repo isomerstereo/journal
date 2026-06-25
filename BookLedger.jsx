@@ -20,7 +20,93 @@ const parseReviewData = (bodyText) => {
 // This prevents fields from losing focus when typing
 const ReviewForm = ({ activeEntry, workspaceHooks }) => {
   const reviewData = parseReviewData(activeEntry.body);
+  // --- OBSIDIAN / WORD STYLE NOTE EDITOR ---
+const NoteEditor = ({ activeEntry, workspaceHooks }) => {
+  const [isEditing, setIsEditing] = useState(true);
 
+  const handleUpdate = (field, value) => {
+    if (!workspaceHooks.saveVaultEntry) return;
+    workspaceHooks.saveVaultEntry(activeEntry.day, {
+      ...activeEntry,
+      [field]: value
+    });
+  };
+
+  // Simulates document injection (.docx / .md parsing structure)
+  const handleDocImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target.result;
+      // Appends imported text directly into current log matrix
+      handleUpdate('body', (activeEntry.body ? activeEntry.body + "\n" : "") + content);
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <div className="space-y-3 h-full flex flex-col justify-between">
+      <div className="space-y-2">
+        {/* Editor Ribbon Bar */}
+        <div className="flex justify-between items-center bg-slate-950 p-1.5 border border-slate-900 rounded">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className={`text-[9px] font-bold px-2 py-0.5 rounded ${isEditing ? 'bg-amber-950 text-amber-400 border border-amber-900' : 'text-slate-500'}`}
+            >
+              [EDIT_MATRIX]
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className={`text-[9px] font-bold px-2 py-0.5 rounded ${!isEditing ? 'bg-indigo-950 text-indigo-400 border border-indigo-800' : 'text-slate-500'}`}
+            >
+              [PREVIEW_RENDER]
+            </button>
+          </div>
+          
+          {/* External Doc Integration Node */}
+          <label className="text-[9px] font-bold bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded hover:text-slate-200 cursor-pointer transition-colors">
+            + IMPORT DOC
+            <input 
+              type="file" 
+              accept=".md,.txt,.docx" 
+              onChange={handleDocImport} 
+              className="hidden" 
+            />
+          </label>
+        </div>
+
+        {/* Dynamic Canvas Node */}
+        <input
+          type="text"
+          value={activeEntry.title || ''}
+          onChange={(e) => handleUpdate('title', e.target.value)}
+          placeholder="Untitled Log Entry Node"
+          className="w-full bg-transparent border-b border-slate-900 text-amber-400 font-bold text-sm tracking-wide pb-1 focus:outline-none focus:border-amber-600 uppercase"
+        />
+
+        {isEditing ? (
+          <textarea
+            value={activeEntry.body || ''}
+            onChange={(e) => handleUpdate('body', e.target.value)}
+            placeholder="Begin logging terminal stream data structure..."
+            className="w-full h-40 bg-slate-950/40 border border-slate-900 p-2 rounded text-slate-300 font-mono text-[11px] focus:outline-none focus:border-slate-800 resize-none leading-relaxed"
+          />
+        ) : (
+          <div className="w-full h-40 bg-slate-950/10 border border-transparent p-2 text-slate-300 font-mono text-[11px] overflow-y-auto whitespace-pre-wrap leading-relaxed pr-1">
+            {activeEntry.body || <span className="text-slate-600 italic">No structural string bytes written.</span>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+  
   const saveReviewField = (field, value) => {
     if (!workspaceHooks.saveVaultEntry) return;
     const updatedData = { ...reviewData, [field]: value };
@@ -298,69 +384,64 @@ export const BookLedger = ({ workspaceHooks, activeDay = null, onSelectDay }) =>
               </div>
               
               {/* RIGHT PAGE: FIXED CONTENT SHEET (Replaced the placeholder layout box) */}
-              <div className="pl-0 md:pl-2 pt-4 md:pt-0 flex flex-col justify-between min-h-[220px]">
-                {activeEntry ? (
-                  <div className="h-full flex flex-col justify-between">
-                    <div>
-                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1 flex justify-between">
-                        <span>Reading Stream node</span>
-                        <span className="text-slate-600">{new Date(activeEntry.updatedAt || activeEntry.createdAt).toLocaleDateString()}</span>
-                      </div>
+<div className="pl-0 md:pl-2 pt-4 md:pt-0 flex flex-col justify-between min-h-[220px]">
+  {activeEntry ? (
+    <div className="h-full flex flex-col justify-between">
+      <div>
+        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1 flex justify-between">
+          <span>Reading Stream node</span>
+          <span className="text-slate-600">{new Date(activeEntry.updatedAt || activeEntry.createdAt).toLocaleDateString()}</span>
+        </div>
 
-                      {activeNotebook.type === 'review' ? (
-                        <ReviewForm activeEntry={activeEntry} workspaceHooks={workspaceHooks} />
-                      ) : (
-                        /* --- NORMAL JOURNAL PLAIN TEXT STREAM --- */
-                        <>
-                          <h3 className="text-amber-400 font-bold text-sm tracking-wide border-b border-slate-900 pb-1 mb-2 uppercase">
-                            {activeEntry.title}
-                          </h3>
-                          <div className="text-slate-300 leading-relaxed text-[11px] max-h-36 overflow-y-auto whitespace-pre-wrap pr-1">
-                            {activeEntry.body}
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {activeEntry.tags && activeEntry.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-3 pt-2 border-t border-slate-900">
-                        {activeEntry.tags.map(t => (
-                          <span key={t} className="text-[9px] bg-slate-950 border border-slate-800 text-slate-500 px-1 rounded">
-                            #{t}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="h-full flex items-center justify-center border border-dashed border-slate-900 rounded p-4 text-center">
-                    <span className="text-slate-600 font-bold tracking-tight uppercase text-[10px]">
-                      {activeDay ? `No data recorded for Day ${activeDay}. Use control panel to write.` : 'Select a log row link from the directory index to deploy data matrix reader.'}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-            </div> {/* CLOSE GRID */}
-          </div>
-        )}
-
-        {/* 2. SHOWER THOUGHTS ENGINE PLACEHOLDER */}
-        {activeNotebook.type === 'thoughts' && (
-          <div className="p-12 border border-dashed border-slate-800 rounded-lg text-center text-slate-500">
-            [STREAM ENGINE ACTIVE] Atomic Rapid Stream Feed Buffer
-          </div>
-        )}
-
-        {/* 3. PLANNING PROJECTS ENGINE PLACEHOLDER */}
-        {activeNotebook.type === 'planning' && (
-          <div className="p-12 border border-dashed border-slate-800 rounded-lg text-center text-slate-500">
-            [BLUEPRINT MATRIX ACTIVE] Kanban Boards & Node Graph Mapping
+        {activeNotebook.type === 'review' ? (
+          <ReviewForm activeEntry={activeEntry} workspaceHooks={workspaceHooks} />
+        ) : (
+          <div className="bg-slate-950 p-3 border border-slate-900 rounded text-slate-400 space-y-2">
+            <p className="text-amber-400 font-bold text-[11px] uppercase">// {activeEntry.title || `DAY ${activeEntry.day} LOG`}</p>
+            <p className="text-[10px] italic text-slate-500">Note contents and interactive checklist are active in the floating editor workspace window.</p>
           </div>
         )}
       </div>
-    );
-  }
+
+      {activeEntry.tags && activeEntry.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-3 pt-2 border-t border-slate-900">
+          {activeEntry.tags.map(t => (
+            <span key={t} className="text-[9px] bg-slate-950 border border-slate-800 text-slate-500 px-1 rounded">
+              #{t}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  ) : (
+    <div className="h-full flex items-center justify-center border border-dashed border-slate-900 rounded p-4 text-center">
+      <span className="text-slate-600 font-bold tracking-tight uppercase text-[10px]">
+        {activeDay ? `No data recorded for Day ${activeDay}. Use control panel to write.` : 'Select a log row link from the directory index to deploy data matrix reader.'}
+      </span>
+    </div>
+  )}
+</div>
+
+</div> {/* CLOSE GRID */}
+</div>
+)}
+
+{/* 2. SHOWER THOUGHTS ENGINE PLACEHOLDER */}
+{activeNotebook.type === 'thoughts' && (
+  <div className="p-12 border border-dashed border-slate-800 rounded-lg text-center text-slate-500">
+    [STREAM ENGINE ACTIVE] Atomic Rapid Stream Feed Buffer
+  </div>
+)}
+
+{/* 3. PLANNING PROJECTS ENGINE PLACEHOLDER */}
+{activeNotebook.type === 'planning' && (
+  <div className="p-12 border border-dashed border-slate-800 rounded-lg text-center text-slate-500">
+    [BLUEPRINT MATRIX ACTIVE] Kanban Boards & Node Graph Mapping
+  </div>
+)}
+</div>
+);
+}
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 font-mono text-xs text-slate-400 items-start">
